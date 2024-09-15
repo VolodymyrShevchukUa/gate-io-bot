@@ -76,7 +76,6 @@ public class MyTelegramBot extends TelegramWebhookBot {
         SendMessage message = new SendMessage();
         message.setParseMode("HTML");
 
-        // Set the formatted message
         message.setText("Виникла помилка " + e.getMessage());
         message.setChatId(update.getMessage().getChatId());
         try {
@@ -146,5 +145,3 @@ public class MyTelegramBot extends TelegramWebhookBot {
 
 
 }
-
-//User(id=228899115, firstName=Vlad, isBot=false, lastName=null, userName=kudryavyy, languageCode=uk, canJoinGroups=null, canReadAllGroupMessages=null, supportInlineQueries=null, isPremium=null, addedToAttachmentMenu=null)

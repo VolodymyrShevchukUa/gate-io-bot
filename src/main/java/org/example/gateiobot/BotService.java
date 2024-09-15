@@ -76,7 +76,6 @@ public class BotService {
                     itemNode.path("borrow_available").asText(),
                     itemNode.path("borrow_available_usdt").asText(),
 
-                    // Convert the interest rates to percentages
                     formatAsPercentageSmall(itemNode.path("interest_rate_hour").asDouble()),
                     formatAsPercentage(itemNode.path("interest_rate_year").asDouble()),
                     formatAsPercentageSmall(itemNode.path("cryptoLoanFixedRateFor7DayHour").asDouble()),
@@ -92,10 +91,10 @@ public class BotService {
     }
 
     private static String formatAsPercentage(double rate) {
-        return String.format("%.2f%%", rate * 100);  // Adjust precision as needed
+        return String.format("%.2f%%", rate * 100);
     }
 
     private static String formatAsPercentageSmall(double rate) {
-        return String.format("%.6f%%", rate * 100);  // Adjust precision as needed
+        return String.format("%.6f%%", rate * 100);
     }
 }
