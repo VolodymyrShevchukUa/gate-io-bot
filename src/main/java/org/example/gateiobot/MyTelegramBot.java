@@ -1,32 +1,30 @@
 package org.example.gateiobot;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 @Component
 public class MyTelegramBot extends TelegramWebhookBot {
 
-
-    private RestTemplate restTemplate;
-    private ObjectMapper objectMapper;
+    @Value("${ROOT_ID}")
+    private String rootId;
+    @Autowired
+    BotService botService;
 
     @Value("${BASE_URL}")
     private String baseUrl;
@@ -34,23 +32,86 @@ public class MyTelegramBot extends TelegramWebhookBot {
     private String apiKey;
     @Value("${GATE_IO_USER_NAME}")
     private String userName;
-
+//228899115
 
     @Override
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            String chatId = update.getMessage().getChatId().toString();
-            String messageText = update.getMessage().getText();
-            List<InterestRate> method = getInterests(messageText);
-            InterestRate interestRate = method.get(0);
-
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId);
-            message.setText("Гнучка ставка: " + interestRate.interestRateHour + "/" + interestRate.interestRateYear);
-
-            return message;
+        try {
+            if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getText().startsWith("/setcoin")) {
+                String chatId = update.getMessage().getChatId().toString();
+                String messageText = update.getMessage().getText().split(" ")[1];
+                List<InterestRate> interestRates = botService.setNewSeekingCoin(messageText);
+                InterestRate interestRate = interestRates.get(0);
+                SendMessage message = new SendMessage();
+                message.setParseMode("HTML");
+                String messageResponse =
+                        "<b>Встановлено нову монету :</b> " + messageText + "\n" +
+                                "<b>Гнучка ставка:</b> " + interestRate.interestRateHour() + " / " + interestRate.interestRateYear() + "\n" +
+                                "<b>7-денна фіксована ставка:</b> " + interestRate.cryptoLoanFixedRateFor7DayHour() + " / " + interestRate.cryptoLoanFixedRateFor7DayYear() + "\n" +
+                                "<b>30-денна фіксована ставка:</b> " + interestRate.cryptoLoanFixedRateFor30DayHour() + " / " + interestRate.cryptoLoanFixedRateFor30DayYear() + "\n";
+                message.setText(messageResponse);
+                message.setChatId(chatId);
+                return message;
+            } else if (update.getMessage().getText().startsWith("/kurs")) {
+                String chatId = update.getMessage().getChatId().toString();
+                String[] strings = update.getMessage().getText().split(" ");
+                List<InterestRate> interestRates = botService.setNewSeekingCoin(strings);
+                InterestRate interestRate = interestRates.get(0);
+                SendMessage message = new SendMessage();
+                message.setParseMode("HTML");
+                String messageResponse =
+                        "<b>Гнучка ставка:</b> " + interestRate.interestRateHour() + " / " + interestRate.interestRateYear() + "\n" +
+                                "<b>7-денна фіксована ставка:</b> " + interestRate.cryptoLoanFixedRateFor7DayHour() + " / " + interestRate.cryptoLoanFixedRateFor7DayYear() + "\n" +
+                                "<b>30-денна фіксована ставка:</b> " + interestRate.cryptoLoanFixedRateFor30DayHour() + " / " + interestRate.cryptoLoanFixedRateFor30DayYear() + "\n";
+                message.setText(messageResponse);
+                message.setChatId(chatId);
+                return message;
+            }
+        } catch (RuntimeException e) {
+            handleException(update, e);
         }
         return null;
+    }
+
+    private void handleException(Update update, RuntimeException e) {
+        SendMessage message = new SendMessage();
+        message.setParseMode("HTML");
+
+        // Set the formatted message
+        message.setText("Виникла помилка " + e.getMessage());
+        message.setChatId(update.getMessage().getChatId());
+        try {
+            execute(message);
+        } catch (TelegramApiException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    @Scheduled(cron = "0 0/30 * * * *")
+    private void sendUpdates() {
+        String seekingCoin = botService.getSeekingCoin();
+        List<InterestRate> interests = botService.getInterests(seekingCoin);
+        InterestRate interestRate = interests.get(0);
+        String rateYear = interestRate.interestRateYear();
+        String currentYear = botService.getCurrentInterest(seekingCoin);
+        if (!Objects.equals(rateYear, currentYear)) {
+            SendMessage message = new SendMessage();
+            message.setParseMode("HTML");
+            message.setText("<b>Interest Rate Alert!</b>\n" +
+                    "<b>Гнучка ставка:</b> " + interestRate.interestRateHour() + " / " + interestRate.interestRateYear() + "\n" +
+                    "<b>7-денна фіксована ставка:</b> " + interestRate.cryptoLoanFixedRateFor7DayHour() + " / " + interestRate.cryptoLoanFixedRateFor7DayYear() + "\n" +
+                    "<b>30-денна фіксована ставка:</b> " + interestRate.cryptoLoanFixedRateFor30DayHour() + " / " + interestRate.cryptoLoanFixedRateFor30DayYear() + "\n");
+            message.setChatId(rootId);
+            sendTelegramMessage(message);
+        }
+    }
+
+    private void sendTelegramMessage(SendMessage message) {
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -70,55 +131,21 @@ public class MyTelegramBot extends TelegramWebhookBot {
 
     @PostConstruct
     public void initWebhook() {
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper();
         SetWebhook setWebhook = new SetWebhook();
         setWebhook.setUrl(baseUrl + "/web-hook");
+        BotCommand setCoinCommand = new BotCommand("setcoin", "Set the coin symbol");
+        BotCommand kursCommand = new BotCommand("kurs", "Get interests for current coin, or you can ask another one");
+        SetMyCommands commands = new SetMyCommands(Arrays.asList(setCoinCommand, kursCommand), null, null);
+
         try {
+            this.execute(commands);
             this.execute(setWebhook);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private List<InterestRate> getInterests(String search) {
-
-        String url = "https://www.gate.io/api/web/v1/uniloan/crypto-loan-market-list?page=1&limit=10&search_coin=" + search + "&fixed_type=0";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("authority", "www.gate.io");
-        headers.add("accept", "application/json, text/plain, */*");
-        headers.add("accept-language", "en-GB,en-US;q=0.9,en;q=0.8");
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-        try {
-            return parseCryptoLoanMarketResponse(response.getBody());
-        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public List<InterestRate> parseCryptoLoanMarketResponse(String responseBody) throws IOException {
-        List<InterestRate> interestRates = new ArrayList<>();
 
-        JsonNode rootNode = objectMapper.readTree(responseBody);
-        JsonNode listNode = rootNode.path("data").path("list");
-
-        for (JsonNode itemNode : listNode) {
-            double interestRateHourValue = itemNode.path("interest_rate_hour").asDouble();
-            double interestRateYearValue = itemNode.path("interest_rate_year").asDouble();
-
-            String interestRateHour = String.format("%.4f%%", interestRateHourValue * 100);
-            String interestRateYear = String.format("%.2f%%", interestRateYearValue * 100);
-
-            interestRates.add(new InterestRate(interestRateHour, interestRateYear));
-        }
-        return interestRates;
-    }
-
-    public record InterestRate(String interestRateHour, String interestRateYear) {
-    }
 }
 
 //User(id=228899115, firstName=Vlad, isBot=false, lastName=null, userName=kudryavyy, languageCode=uk, canJoinGroups=null, canReadAllGroupMessages=null, supportInlineQueries=null, isPremium=null, addedToAttachmentMenu=null)
