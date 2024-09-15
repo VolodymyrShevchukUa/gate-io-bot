@@ -58,12 +58,10 @@ public class MyTelegramBot extends TelegramWebhookBot {
         return userName;
     }
 
-    //"getIoScheduledBot"
     @Override
     public String getBotToken() {
         return apiKey;
     }
-    //"7019743216:AAF0pv36ihEkQup0zIDTXe-IaMA16iuSubY"
 
     @Override
     public String getBotPath() {
