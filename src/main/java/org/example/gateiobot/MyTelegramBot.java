@@ -32,7 +32,6 @@ public class MyTelegramBot extends TelegramWebhookBot {
     private String apiKey;
     @Value("${GATE_IO_USER_NAME}")
     private String userName;
-//228899115
 
     @Override
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
