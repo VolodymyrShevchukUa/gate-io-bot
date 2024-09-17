@@ -90,9 +90,8 @@ public class MyTelegramBot extends TelegramWebhookBot {
         String seekingCoin = botService.getSeekingCoin();
         List<InterestRate> interests = botService.getInterests(seekingCoin);
         InterestRate interestRate = interests.get(0);
-        String rateYear = interestRate.interestRateYear();
-        String currentYear = botService.getCurrentInterest(seekingCoin);
-        if (!Objects.equals(rateYear, currentYear)) {
+        InterestRate currentInterest = botService.getCurrentInterest(seekingCoin);
+        if (!Objects.equals(interestRate, currentInterest)) {
             SendMessage message = new SendMessage();
             message.setParseMode("HTML");
             message.setText("<b>Interest Rate Alert!</b>\n" +

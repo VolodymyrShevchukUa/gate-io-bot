@@ -21,9 +21,7 @@ public class BotService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private String seekingCoin = "MNT";
-
-    private final Map<String, String> interestMap = new HashMap<>();
-
+    private final Map<String, InterestRate> interestMap = new HashMap<>();
     public List<InterestRate> getInterests(String search) {
 
         String url = "https://www.gate.io/api/web/v1/uniloan/crypto-loan-market-list?page=1&limit=10&search_coin=" + search + "&fixed_type=0";
@@ -45,8 +43,7 @@ public class BotService {
     public List<InterestRate> setNewSeekingCoin(String newCoin) {
         List<InterestRate> interests = getInterests(newCoin);
         InterestRate interestRate = interests.get(0);
-        String rateYear = interestRate.interestRateYear();
-        interestMap.put(newCoin, rateYear);
+        interestMap.put(newCoin, interestRate);
         this.seekingCoin = newCoin;
         return interests;
     }
@@ -58,7 +55,7 @@ public class BotService {
         return seekingCoin;
     }
 
-    public String getCurrentInterest(String key) {
+    public InterestRate getCurrentInterest(String key) {
         return interestMap.get(key);
     }
 
