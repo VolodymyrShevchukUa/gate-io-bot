@@ -100,6 +100,7 @@ public class MyTelegramBot extends TelegramWebhookBot {
                     "<b>30-денна фіксована ставка:</b> " + interestRate.cryptoLoanFixedRateFor30DayHour() + " / " + interestRate.cryptoLoanFixedRateFor30DayYear() + "\n");
             message.setChatId(rootId);
             sendTelegramMessage(message);
+            botService.setNewInterests(seekingCoin,interestRate);
         }
     }
 

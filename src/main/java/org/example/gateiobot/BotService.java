@@ -22,6 +22,7 @@ public class BotService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private String seekingCoin = "MNT";
     private final Map<String, InterestRate> interestMap = new HashMap<>();
+
     public List<InterestRate> getInterests(String search) {
 
         String url = "https://www.gate.io/api/web/v1/uniloan/crypto-loan-market-list?page=1&limit=10&search_coin=" + search + "&fixed_type=0";
@@ -47,6 +48,7 @@ public class BotService {
         this.seekingCoin = newCoin;
         return interests;
     }
+
     public List<InterestRate> setNewSeekingCoin(String[] seekingCoin) {
         return getInterests(seekingCoin.length == 2 ? seekingCoin[1] : this.seekingCoin);
     }
@@ -57,6 +59,10 @@ public class BotService {
 
     public InterestRate getCurrentInterest(String key) {
         return interestMap.get(key);
+    }
+
+    public void setNewInterests(String key, InterestRate interestRate) {
+        this.interestMap.put(key, interestRate);
     }
 
     public List<InterestRate> parseCryptoLoanMarketResponse(String responseBody) throws IOException {
