@@ -85,7 +85,7 @@ public class MyTelegramBot extends TelegramWebhookBot {
         }
     }
 
-    @Scheduled(cron = "0 0/30 * * * *")
+    @Scheduled(cron = "0 0/15 * * * *")
     private void sendUpdates() {
         String seekingCoin = botService.getSeekingCoin();
         List<InterestRate> interests = botService.getInterests(seekingCoin);
